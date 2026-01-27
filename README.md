@@ -5,7 +5,7 @@
 Usage example:
 
 ```
-./perl wg2if.pl fr-wg-001.conf | doas tee /etc/hostname.wg0
+perl ./wg2if.pl fr-wg-001.conf | doas tee /etc/hostname.wg0
 ```
 
 The script:
