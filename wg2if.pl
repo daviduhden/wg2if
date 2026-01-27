@@ -13,9 +13,11 @@
 use strict;
 use warnings;
 
-sub logi { print "[INFO] $_[0]\n"; }
-sub logw { print STDERR "[WARN] $_[0]\n"; }
-sub loge { print STDERR "[ERROR] $_[0]\n"; }
+my $log_enabled = ( -t STDOUT ) ? 1 : 0;
+
+sub logi { return if !$log_enabled; print "[INFO] $_[0]\n"; }
+sub logw { return if !$log_enabled; print STDERR "[WARN] $_[0]\n"; }
+sub loge { return if !$log_enabled; print STDERR "[ERROR] $_[0]\n"; }
 
 sub die_tool {
     my ($msg) = @_;
