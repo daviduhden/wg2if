@@ -13,6 +13,16 @@
 use strict;
 use warnings;
 
+sub logi { print "[INFO] $_[0]\n"; }
+sub logw { print STDERR "[WARN] $_[0]\n"; }
+sub loge { print STDERR "[ERROR] $_[0]\n"; }
+
+sub die_tool {
+    my ($msg) = @_;
+    loge($msg);
+    exit 1;
+}
+
 # -------------------------------------------------
 # Argument checks
 # -------------------------------------------------
