@@ -68,7 +68,9 @@ sub parse_config {
             print "wgkey $1\n";
         }
 
-        if ( $interface_mode && $line =~ /^PersistentKeepalive\s*=\s*(\S+)/ ) {
+        if ( $interface_mode
+            && $line =~ /^PersistentKeepalive\s*=\s*(\S+)/ )
+        {
             print "wgpka $1\n";
         }
 
