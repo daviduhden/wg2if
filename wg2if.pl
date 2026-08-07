@@ -79,13 +79,9 @@ sub parse_config {
             for my $ip (@ips) {
                 if ( $ip !~ /:/ ) {
                     print "inet $ip\n";
-                    my ($net) = split '/', $ip;
-                    $routes = "$routes\n!route change default $net";
                 }
                 else {
                     print "inet6 $ip\n";
-                    my ($net) = split '/', $ip;
-                    $routes = "$routes\n!route add -inet6 default $net";
                 }
             }
         }
@@ -105,13 +101,27 @@ sub parse_config {
 
             my ($host)     = split ' ', $endpoint;
             my $default_gw = get_default_gateway();
-            $routes = "!route add $host $default_gw\n$routes";
+            if ( !$default_gw ) {
+                warn "wg2if: no default route found; "
+                  . "the endpoint route cannot be generated\n";
+            }
+            else {
+                $routes = "!route add $host $default_gw\n$routes";
+            }
         }
 
         if ( $peer_mode && $line =~ /^AllowedIPs\s*=\s*(.+)/ ) {
             my @ips = split /,/, $1;
             for my $ip (@ips) {
-                print "wgaip $ip ";
+                my $t = $ip;
+                $t =~ s/^\s+|\s+$//g;
+                print "wgaip $t ";
+                if ( $t !~ /:/ ) {
+                    $routes .= "!route add $t -iface \$if\n";
+                }
+                else {
+                    $routes .= "!route add -inet6 $t -iface \$if\n";
+                }
             }
         }
     }
@@ -121,8 +131,19 @@ sub parse_config {
 
 sub print_routes {
     my ($routes) = @_;
+    return unless $routes;
     print "\n";
     print $routes;
+}
+
+sub get_default_gateway {
+    my $output = `route get default 2>/dev/null`;
+    for my $line ( split /\n/, $output ) {
+        if ( $line =~ /^\s*gateway:\s*(\S+)/ ) {
+            return $1;
+        }
+    }
+    return '';
 }
 
 sub main {
@@ -138,17 +159,3 @@ sub main {
 # -------------------------------------------------
 
 main();
-
-# -------------------------------------------------
-# Functions
-# -------------------------------------------------
-
-sub get_default_gateway {
-    my $output = `route get default 2>/dev/null`;
-    for my $line ( split /\n/, $output ) {
-        if ( $line =~ /^\s*gateway:\s*(\S+)/ ) {
-            return $1;
-        }
-    }
-    return '';
-}
