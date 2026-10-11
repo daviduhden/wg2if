@@ -137,7 +137,20 @@ sub print_routes {
 }
 
 sub get_default_gateway {
-    my $output = `route get default 2>/dev/null`;
+
+    # Run `route get default` without a shell and discard its stderr (it
+    # is noisy when there is no default route).
+    my $pid = open my $fh, '-|';
+    return '' unless defined $pid;
+    if ( !$pid ) {
+        open STDERR, '>', '/dev/null';
+        exec {'route'} 'route', 'get', 'default';
+        exit 127;
+    }
+    my $output = '';
+    $output .= $_ while <$fh>;
+    close $fh;
+
     for my $line ( split /\n/, $output ) {
         if ( $line =~ /^\s*gateway:\s*(\S+)/ ) {
             return $1;
