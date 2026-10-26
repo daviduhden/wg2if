@@ -100,5 +100,4 @@ stop and disable `resolvd` and edit `/etc/resolv.conf` manually.
 ## Further hardening
 
 For a more resilient setup, route non-VPN traffic through a separate routing
-domain and keep VPN traffic in the primary domain. Reference:
-https://dataswamp.org/~solene/2021-10-09-openbsd-wireguard-exit.html
+domain and keep VPN traffic in the primary domain.
