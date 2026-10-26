@@ -20,27 +20,39 @@ use Socket qw(AF_INET AF_INET6 inet_ntop inet_pton);
 my %warned;
 my %gateway_cache;
 
+# Return the short usage line used by argument errors and -h.
 sub usage {
     return "usage: $0 file";
 }
 
+# Report a fatal error on stderr and exit with status 1.  The
+# generated output is written only after parsing succeeds, so no
+# partial configuration is ever emitted before an error.
 sub die_tool {
     my ($msg) = @_;
     print STDERR "$msg\n";
     exit 1;
 }
 
+# Report a syntax or value error with the source line number.  All
+# parser failures use this form so the operator can locate the
+# offending line.
 sub fail {
     my ($line_no, $msg) = @_;
     die_tool("wg2if: line $line_no: $msg");
 }
 
+# Emit a warning only once per key.  Unsupported wg-quick
+# directives and gateway lookup failures are reported once each,
+# even when they occur for every peer or address family.
 sub warn_once {
     my ($key, $msg) = @_;
     return if $warned{$key}++;
     warn "wg2if: $msg\n";
 }
 
+# Remove surrounding whitespace in place.  The configuration
+# parser and the route-output parser share this helper.
 sub trim {
     my ($value) = @_;
     $value =~ s/\A\s+//;
@@ -48,6 +60,10 @@ sub trim {
     return $value;
 }
 
+# Parse and validate the command line.  Exactly one regular file
+# is required; -h/--help is accepted alone.  A non-regular target
+# is rejected before open so the parser never consumes a device
+# or directory.
 sub parse_args {
     if ( @ARGV == 1
         && ( $ARGV[0] eq '-h' || $ARGV[0] eq '--help' ) )
@@ -71,6 +87,9 @@ sub parse_args {
     return $file;
 }
 
+# Open the configuration with a lexical handle and
+# three-argument open.  No shell or implicit PATH lookup is
+# involved.
 sub open_config {
     my ($file) = @_;
     open my $fh, '<', $file
@@ -78,6 +97,10 @@ sub open_config {
     return $fh;
 }
 
+# Parse a decimal unsigned integer and enforce the caller's
+# inclusive range.  Only ASCII digits are accepted; signs,
+# whitespace and trailing characters are rejected before any
+# numeric conversion.
 sub parse_uint {
     my ($value, $min, $max, $line_no, $name) = @_;
 
@@ -89,6 +112,9 @@ sub parse_uint {
     return $number;
 }
 
+# Validate a WireGuard base64 key.  Keys are exactly 32 bytes
+# encoded as 43 base64 characters plus one padding character;
+# the parser deliberately does not interpret the key material.
 sub validate_key {
     my ($value, $line_no, $name) = @_;
 
@@ -98,6 +124,11 @@ sub validate_key {
     return $value;
 }
 
+# Parse an IPv4 or IPv6 address with an optional prefix.  The
+# address family is selected by inet_pton(3), the prefix defaults
+# to the full host length, and the canonical inet_ntop(3) spelling
+# is returned so duplicate suppression and generated directives
+# are stable.
 sub parse_cidr {
     my ($value, $line_no, $name) = @_;
 
@@ -133,6 +164,11 @@ sub parse_cidr {
     return ($family, "$canonical/$prefix");
 }
 
+# Validate a DNS hostname for Endpoint fields.  Labels must be
+# nonempty, at most 63 bytes, start and end with an alphanumeric
+# character, and use only ASCII letters, digits, dots and hyphens.
+# A dotted numeric string is rejected so a malformed IPv4 literal
+# is not silently treated as a hostname.
 sub valid_hostname {
     my ($host) = @_;
 
@@ -152,6 +188,10 @@ sub valid_hostname {
     return 1;
 }
 
+# Parse host:port or [IPv6]:port.  IPv6 must use brackets so the
+# final colon is unambiguous; IPv4 and hostnames use the
+# unbracketed form.  Ports are decimal and range-checked, and
+# addresses are canonicalized before use.
 sub parse_endpoint {
     my ($value, $line_no) = @_;
 
@@ -196,6 +236,9 @@ sub parse_endpoint {
     return ($host, $port, $family);
 }
 
+# Append an address to a per-list deduplicated array.  The key
+# is the pair (family, canonical CIDR), so the same network
+# written in different textual forms is still collapsed.
 sub push_unique_addr {
     my ($list, $family, $cidr) = @_;
 
@@ -207,6 +250,10 @@ sub push_unique_addr {
     push @$list, { family => $family, cidr => $cidr };
 }
 
+# Apply one [Interface] key.  PrivateKey is required and may
+# appear only once; Address lists are split and deduplicated.
+# Known wg-quick directives that cannot be represented in
+# hostname.if(5) are reported once and ignored.
 sub parse_interface_key {
     my ($cfg, $key, $value, $line_no) = @_;
     my $if = $cfg->{interface};
@@ -251,6 +298,10 @@ sub parse_interface_key {
     }
 }
 
+# Apply one [Peer] key.  PublicKey is required; keys, endpoints
+# and AllowedIPs are validated and stored in their canonical
+# form.  Unsupported directives are warned about once and
+# skipped without stopping generation.
 sub parse_peer_key {
     my ($peer, $key, $value, $line_no) = @_;
 
@@ -296,6 +347,10 @@ sub parse_peer_key {
     }
 }
 
+# Finish the current peer and append it to the ordered peer
+# list.  A peer is accepted only when a PublicKey was seen; the
+# recursive parser calls this when the next section starts and
+# once more at end of file.
 sub push_peer {
     my ($cfg, $peer, $line_no) = @_;
     return unless defined $peer;
@@ -306,6 +361,11 @@ sub push_peer {
     push @{ $cfg->{peers} }, $peer;
 }
 
+# Parse the whole wg-quick-style configuration into an ordered
+# in-memory structure.  Section headers are case-insensitive;
+# comments are stripped before validation; duplicate [Interface]
+# sections and [Peer] before [Interface] are fatal.  The parser
+# never writes output, so a failure leaves stdout empty.
 sub parse_config {
     my ($fh) = @_;
 
@@ -385,12 +445,19 @@ sub parse_config {
     return $cfg;
 }
 
+# Append a route command once.  The global seen set spans all
+# peers so a route generated by two different AllowedIPs lists
+# is emitted only once.
 sub add_route {
     my ($routes, $seen, $route) = @_;
     return if $seen->{$route}++;
     push @$routes, $route;
 }
 
+# Validate a gateway printed by route(8).  The address may carry
+# an IPv6 scope suffix; scope suffixes are rejected for IPv4.
+# Only a syntactically valid address is accepted so arbitrary
+# route output cannot become shell input.
 sub valid_gateway {
     my ($gateway, $family) = @_;
 
@@ -405,6 +472,10 @@ sub valid_gateway {
     return 1;
 }
 
+# Run route(8) with list-form argv and capture stdout.  Stderr
+# is discarded so a missing route cannot pollute the generated
+# configuration.  A fork failure returns an empty string, which
+# the caller treats as no gateway.
 sub run_route {
     my (@args) = @_;
 
@@ -424,6 +495,11 @@ sub run_route {
     return $output;
 }
 
+# Look up and cache the default gateway for one address family.
+# Two argument orders are tried for IPv6 because route(8)
+# variants differ; only the first valid gateway is cached.  An
+# empty cached value records that no gateway was found, avoiding
+# repeated route queries for every peer.
 sub get_default_gateway {
     my ($family) = @_;
 
@@ -450,6 +526,11 @@ sub get_default_gateway {
     return '';
 }
 
+# Emit the final hostname.if(5) fragment.  Interface directives
+# come first, one wgpeer line is emitted per peer, then endpoint
+# routes and interface routes are added with global
+# deduplication.  This function performs no validation and no
+# system changes; it assumes parse_config() succeeded.
 sub render_config {
     my ($cfg) = @_;
     my $if = $cfg->{interface};
@@ -528,6 +609,9 @@ sub render_config {
     }
 }
 
+# Script entry point: validate arguments, parse the whole file,
+# and render only after parsing succeeds.  The close check catches
+# read errors that would otherwise be reported as a clean EOF.
 sub main {
     my $file = parse_args();
     my $fh   = open_config($file);
