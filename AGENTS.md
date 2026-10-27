@@ -16,9 +16,89 @@ does not implement.
 - `README.md` - user-facing usage, supported input, and operational notes.
 - `LICENSE` - ISC license, copyright David Uhden Collado. Preserve it.
 - `.agents/skills/` - task-specific agent procedures.
+- `scripts/check-agent-maintenance.pl` - structural maintenance-policy
+  validator, using Perl core modules and Git.
+- `.github/workflows/agent-maintenance.yml` - pull-request enforcement.
 
-There is no Makefile, build system, CI configuration, test suite, or lint
-configuration in this repository.
+There is no Makefile, build system, test suite, or lint configuration.
+GitHub Actions runs the agent-maintenance validator for pull requests.
+
+## Continuous Agent & Skills Maintenance
+
+**EVERY CHANGE TO THE REPOSITORY MUST TRIGGER AN AGENT AND SKILLS
+MAINTENANCE REVIEW.** This applies to source, configuration, dependencies,
+features, bug fixes, refactors, tests, workflows, documentation, and
+repository structure. Agent instructions and skills are living repository
+artifacts.
+
+> Agent instructions and skills are living repository artifacts.
+>
+> Every repository modification MUST include an agent/skills
+> synchronization step.
+>
+> Before completing any task, inspect the applicable AGENTS.md and SKILL.md
+> files, update the affected instructions, and validate their consistency
+> with the implementation.
+>
+> A code change without the corresponding agent knowledge maintenance is
+> considered incomplete.
+>
+> Never claim completion when the synchronization step has been skipped or
+> has failed.
+
+For every task that changes the repository:
+
+1. Inspect all applicable `AGENTS.md`, `.github/agents/*.agent.md`,
+   `.agents/skills/**/SKILL.md`, `.github/skills/**/SKILL.md`,
+   `.claude/skills/**/SKILL.md`, `.github/instructions/*.instructions.md`,
+   and any tool-specific agent instructions present in the repository
+   (including Claude, Cursor, Copilot, Gemini, and Windsurf instructions).
+2. Map changed components and procedures to agent responsibilities and
+   skills by their scope and `When to use` guidance. Review the root
+   instructions and every mapped instruction file after implementation.
+3. Update at least one relevant instruction or skill in the same change.
+   Update an existing skill when its procedure, assumptions, validation,
+   commands, paths, or reusable knowledge changed. Create a skill only
+   when no existing skill can own recurring, sufficiently distinct work;
+   avoid duplicate scopes.
+4. Keep specialized agent instructions aligned with their skills and the
+   implementation. There are currently no specialized agent files in this
+   repository. A future agent that changes the project must add the
+   `Post-Change Knowledge Synchronization` section to any specialized agent
+   instructions it creates or updates.
+5. Remove obsolete or conflicting guidance, add reusable knowledge learned
+   during the task, and verify local links and references.
+6. Run `perl scripts/check-agent-maintenance.pl` after the relevant
+   instruction updates. The check validates changed-file coverage,
+   instruction structure, and resolvable local Markdown links. Also run
+   project-specific validation required by the affected skill.
+
+The validator enforces structural conditions and substantive additions to
+an instruction file; it cannot determine whether an update is semantically
+relevant. Review the diff for that. If synchronization cannot be completed,
+document why and report the task as incomplete. A missing instruction
+update, invalid references, or failed maintenance check blocks completion.
+When changing this policy, the validator, or their workflow, review the
+whole maintenance system once at the end and rerun validation only to check
+corrections; this avoids an endless update loop.
+
+### Mandatory Definition of Done
+
+- [ ] Repository changes implemented.
+- [ ] Relevant agent instructions reviewed.
+- [ ] Relevant skills reviewed.
+- [ ] Affected `AGENTS.md` / `SKILL.md` files updated.
+- [ ] Obsolete knowledge removed.
+- [ ] New reusable knowledge incorporated.
+- [ ] Agent and skill references validated.
+- [ ] Automated maintenance checks passed.
+- [ ] Final synchronization status reported.
+
+If any check fails, correct it or explicitly report the limitation and mark
+the task incomplete. Every final report must include **Agent & Skills
+Synchronization** with agents and skills reviewed, instruction files
+updated, knowledge incorporated or corrected, validations run, and status
+`PASS` or `FAIL`. Never report a validation as passing unless it ran.
 
 ## Architecture
 
@@ -135,13 +215,16 @@ unrelated changes instead of hiding them.
 
 ## Workflow
 
-1. Read the relevant skill below before changing behavior.
-2. Reproduce the current behavior with a fake fixture in `/tmp`.
-3. Make the smallest change consistent with the existing style.
-4. Run `perl -c wg2if.pl`, regenerate the fixture, and diff the result.
-5. Run `git diff --check` and review `git diff`.
-6. Report what was verified, what was not, and any system-level step left
-   to the operator.
+1. Read the relevant skills below before changing behavior.
+2. Reproduce current behavior with a fake fixture in `/tmp` when behavior
+   changes.
+3. Make the smallest change consistent with existing style.
+4. Run project-specific validation, including `perl -c wg2if.pl` for Perl
+   changes and fixture comparison when behavior changes.
+5. Complete the Continuous Agent & Skills Maintenance procedure and run
+   `perl scripts/check-agent-maintenance.pl`.
+6. Run `git diff --check`, review the full diff, and report verification,
+   synchronization status, and any system-level step left to the operator.
 
 ## Skills
 

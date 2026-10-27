@@ -208,6 +208,15 @@ The parser uses allowlists, not quote-based escaping. Keep it that way:
 | No stdout on failure | Parsing is now atomic; check stderr and exit status. |
 | Duplicate key error | `PrivateKey`, `PublicKey`, `PresharedKey`, and `Endpoint` are single-valued. |
 
+## Maintenance & Continuous Learning
+
+When this skill is used to modify the repository, review it after the task.
+Update it when parsing behavior, validation procedures, tools, configuration
+assumptions, fixtures, or validation commands change. Add reusable findings
+and correct inaccurate guidance; keep examples and procedures current. Do
+not add one-off execution details. Review related agent instructions and
+skills, then run `perl scripts/check-agent-maintenance.pl`.
+
 ## References
 
 - OpenBSD `hostname.if(5)`: https://man.openbsd.org/hostname.if.5

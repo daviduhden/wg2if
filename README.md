@@ -97,6 +97,25 @@ stop and disable `resolvd` and edit `/etc/resolv.conf` manually.
 - The generated file must be owned by root, group wheel, and mode `600`
   because it contains the private key.
 
+## Agent instruction maintenance
+
+Every repository change must include a relevant, substantive update to
+`AGENTS.md`, a specialized agent instruction, or a skill. Before finishing,
+review the applicable instruction files and report the synchronization
+result. Run the structural validator from the repository root:
+
+```sh
+perl scripts/check-agent-maintenance.pl
+```
+
+The validator checks Git changes, instruction structure, local Markdown
+links, and a minimum amount of added instruction content. GitHub Actions runs
+it for pull requests. These automated checks cannot determine semantic
+relevance; reviewers must confirm that the update accurately captures
+reusable knowledge. For local branch work, compare against another commit
+with `--base <commit>` when the default `HEAD` comparison is not the intended
+change set.
+
 ## Further hardening
 
 For a more resilient setup, route non-VPN traffic through a separate routing

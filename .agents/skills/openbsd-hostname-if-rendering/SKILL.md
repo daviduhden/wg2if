@@ -190,6 +190,15 @@ run it as part of repository work.
 | Existing config destroyed | A direct redirect or `tee` truncates the target. Render to `/tmp` and review before installing. |
 | Sensitive key exposed | `wgkey` and `wgpsk` are printed. Keep output out of logs and use mode `600`, root:wheel. |
 
+## Maintenance & Continuous Learning
+
+When this skill is used to modify the repository, review it after the task.
+Update it when rendering procedures, tools, configuration assumptions,
+validation commands, or the output contract change. Add reusable findings
+and correct inaccurate guidance; keep examples and validation steps current.
+Do not add one-off execution details. Review related agent instructions
+and skills, then run `perl scripts/check-agent-maintenance.pl`.
+
 ## References
 
 - OpenBSD `hostname.if(5)`: https://man.openbsd.org/hostname.if.5

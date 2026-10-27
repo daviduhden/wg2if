@@ -168,6 +168,15 @@ to complete a documentation task.
 | Management session lost | A route change redirected traffic. Use console access and a rollback plan. |
 | Routes land in the wrong table | `Table`/rdomain is ignored; only the default table is used. |
 
+## Maintenance & Continuous Learning
+
+When this skill is used to modify the repository, review it after the task.
+Update it when route behavior, safety procedures, tools, configuration
+assumptions, or validation commands change. Add reusable findings and
+correct inaccurate guidance; keep examples and procedures current. Do not
+add one-off execution details. Review related agent instructions and skills,
+then run `perl scripts/check-agent-maintenance.pl`.
+
 ## References
 
 - OpenBSD `route(8)`: https://man.openbsd.org/route.8
