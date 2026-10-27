@@ -38,7 +38,7 @@ sub die_tool {
 # parser failures use this form so the operator can locate the
 # offending line.
 sub fail {
-    my ($line_no, $msg) = @_;
+    my ( $line_no, $msg ) = @_;
     die_tool("wg2if: line $line_no: $msg");
 }
 
@@ -46,7 +46,7 @@ sub fail {
 # directives and gateway lookup failures are reported once each,
 # even when they occur for every peer or address family.
 sub warn_once {
-    my ($key, $msg) = @_;
+    my ( $key, $msg ) = @_;
     return if $warned{$key}++;
     warn "wg2if: $msg\n";
 }
@@ -73,7 +73,7 @@ sub parse_args {
     }
 
     if ( @ARGV != 1 ) {
-        die_tool(usage());
+        die_tool( usage() );
     }
 
     my $file = $ARGV[0];
@@ -102,12 +102,12 @@ sub open_config {
 # whitespace and trailing characters are rejected before any
 # numeric conversion.
 sub parse_uint {
-    my ($value, $min, $max, $line_no, $name) = @_;
+    my ( $value, $min, $max, $line_no, $name ) = @_;
 
-    fail($line_no, "invalid $name") unless $value =~ /\A\d+\z/;
+    fail( $line_no, "invalid $name" ) unless $value =~ /\A\d+\z/;
     my $number = 0 + $value;
-    fail($line_no, "invalid $name") if $number < $min;
-    fail($line_no, "invalid $name") if $number > $max;
+    fail( $line_no, "invalid $name" ) if $number < $min;
+    fail( $line_no, "invalid $name" ) if $number > $max;
 
     return $number;
 }
@@ -116,9 +116,9 @@ sub parse_uint {
 # encoded as 43 base64 characters plus one padding character;
 # the parser deliberately does not interpret the key material.
 sub validate_key {
-    my ($value, $line_no, $name) = @_;
+    my ( $value, $line_no, $name ) = @_;
 
-    fail($line_no, "invalid $name")
+    fail( $line_no, "invalid $name" )
       unless $value =~ /\A[A-Za-z0-9+\/]{43}=\z/;
 
     return $value;
@@ -130,38 +130,37 @@ sub validate_key {
 # is returned so duplicate suppression and generated directives
 # are stable.
 sub parse_cidr {
-    my ($value, $line_no, $name) = @_;
+    my ( $value, $line_no, $name ) = @_;
 
-    my ($addr, $prefix) =
-      $value =~ /\A([^\/]+)(?:\/(\d{1,3}))?\z/;
-    fail($line_no, "invalid $name") unless defined $addr;
+    my ( $addr, $prefix ) = $value =~ /\A([^\/]+)(?:\/(\d{1,3}))?\z/;
+    fail( $line_no, "invalid $name" ) unless defined $addr;
 
-    my ($family, $af, $max, $packed);
-    $packed = inet_pton(AF_INET, $addr);
+    my ( $family, $af, $max, $packed );
+    $packed = inet_pton( AF_INET, $addr );
     if ( defined $packed ) {
         ( $family, $af, $max ) = ( 'inet', AF_INET, 32 );
     }
     else {
-        $packed = inet_pton(AF_INET6, $addr);
+        $packed = inet_pton( AF_INET6, $addr );
         ( $family, $af, $max ) = ( 'inet6', AF_INET6, 128 );
     }
-    fail($line_no, "invalid $name address")
+    fail( $line_no, "invalid $name address" )
       unless defined $packed;
 
     if ( defined $prefix ) {
         $prefix = 0 + $prefix;
-        fail($line_no, "invalid $name prefix")
+        fail( $line_no, "invalid $name prefix" )
           if $prefix > $max;
     }
     else {
         $prefix = $max;
     }
 
-    my $canonical = inet_ntop($af, $packed);
-    fail($line_no, "invalid $name address")
+    my $canonical = inet_ntop( $af, $packed );
+    fail( $line_no, "invalid $name address" )
       unless defined $canonical;
 
-    return ($family, "$canonical/$prefix");
+    return ( $family, "$canonical/$prefix" );
 }
 
 # Validate a DNS hostname for Endpoint fields.  Labels must be
@@ -193,57 +192,57 @@ sub valid_hostname {
 # unbracketed form.  Ports are decimal and range-checked, and
 # addresses are canonicalized before use.
 sub parse_endpoint {
-    my ($value, $line_no) = @_;
+    my ( $value, $line_no ) = @_;
 
-    my ($host, $port, $family);
+    my ( $host, $port, $family );
     if ( $value =~ /\A\[([^\]]+)\]:(\d{1,5})\z/ ) {
         $host   = $1;
         $port   = $2;
         $family = 'inet6';
 
-        my $packed = inet_pton(AF_INET6, $host);
-        fail($line_no, 'invalid Endpoint address')
+        my $packed = inet_pton( AF_INET6, $host );
+        fail( $line_no, 'invalid Endpoint address' )
           unless defined $packed;
-        $host = inet_ntop(AF_INET6, $packed);
-        fail($line_no, 'invalid Endpoint address')
+        $host = inet_ntop( AF_INET6, $packed );
+        fail( $line_no, 'invalid Endpoint address' )
           unless defined $host;
     }
     elsif ( $value =~ /\A([^:]+):(\d{1,5})\z/ ) {
         $host = $1;
         $port = $2;
 
-        my $packed = inet_pton(AF_INET, $host);
+        my $packed = inet_pton( AF_INET, $host );
         if ( defined $packed ) {
-            $host   = inet_ntop(AF_INET, $packed);
+            $host   = inet_ntop( AF_INET, $packed );
             $family = 'inet';
-            fail($line_no, 'invalid Endpoint address')
+            fail( $line_no, 'invalid Endpoint address' )
               unless defined $host;
         }
         elsif ( valid_hostname($host) ) {
             $family = 'hostname';
         }
         else {
-            fail($line_no, 'invalid Endpoint host');
+            fail( $line_no, 'invalid Endpoint host' );
         }
     }
     else {
-        fail($line_no,
-          'invalid Endpoint; expected host:port or [IPv6]:port');
+        fail( $line_no, 'invalid Endpoint; expected host:port or [IPv6]:port' );
     }
 
-    $port = parse_uint($port, 1, 65535, $line_no, 'Endpoint port');
+    $port = parse_uint( $port, 1, 65535, $line_no, 'Endpoint port' );
 
-    return ($host, $port, $family);
+    return ( $host, $port, $family );
 }
 
 # Append an address to a per-list deduplicated array.  The key
 # is the pair (family, canonical CIDR), so the same network
 # written in different textual forms is still collapsed.
 sub push_unique_addr {
-    my ($list, $family, $cidr) = @_;
+    my ( $list, $family, $cidr ) = @_;
 
     for my $item (@$list) {
-        return if $item->{family} eq $family
+        return
+          if $item->{family} eq $family
           && $item->{cidr} eq $cidr;
     }
 
@@ -255,46 +254,42 @@ sub push_unique_addr {
 # Known wg-quick directives that cannot be represented in
 # hostname.if(5) are reported once and ignored.
 sub parse_interface_key {
-    my ($cfg, $key, $value, $line_no) = @_;
+    my ( $cfg, $key, $value, $line_no ) = @_;
     my $if = $cfg->{interface};
 
     if ( $key eq 'privatekey' ) {
-        fail($line_no, 'duplicate PrivateKey')
+        fail( $line_no, 'duplicate PrivateKey' )
           if defined $if->{private_key};
-        $if->{private_key} =
-          validate_key($value, $line_no, 'PrivateKey');
+        $if->{private_key} = validate_key( $value, $line_no, 'PrivateKey' );
     }
     elsif ( $key eq 'address' ) {
         for my $item ( split /,/, $value, -1 ) {
             $item = trim($item);
-            fail($line_no, 'empty Address entry')
+            fail( $line_no, 'empty Address entry' )
               if $item eq '';
-            my ($family, $cidr) =
-              parse_cidr($item, $line_no, 'Address');
-            push_unique_addr($if->{addresses}, $family, $cidr);
+            my ( $family, $cidr ) = parse_cidr( $item, $line_no, 'Address' );
+            push_unique_addr( $if->{addresses}, $family, $cidr );
         }
     }
     elsif ( $key eq 'persistentkeepalive' ) {
         $if->{keepalive} =
-          parse_uint($value, 0, 65535, $line_no,
-            'PersistentKeepalive');
+          parse_uint( $value, 0, 65535, $line_no, 'PersistentKeepalive' );
     }
     elsif ( $key eq 'listenport' ) {
         $if->{listen_port} =
-          parse_uint($value, 1, 65535, $line_no, 'ListenPort');
+          parse_uint( $value, 1, 65535, $line_no, 'ListenPort' );
     }
     elsif ( $key eq 'mtu' ) {
-        $if->{mtu} =
-          parse_uint($value, 576, 65535, $line_no, 'MTU');
+        $if->{mtu} = parse_uint( $value, 576, 65535, $line_no, 'MTU' );
     }
     elsif ( $key eq 'dns' ) {
-        warn_once('dns',
-          'DNS is not modified; configure resolvd or ' .
-          '/etc/resolv.conf manually');
+        warn_once( 'dns',
+                'DNS is not modified; configure resolvd or '
+              . '/etc/resolv.conf manually' );
     }
     else {
-        warn_once("unsupported-interface-$key",
-          "unsupported directive $key in [Interface]; ignored");
+        warn_once( "unsupported-interface-$key",
+            "unsupported directive $key in [Interface]; ignored" );
     }
 }
 
@@ -303,25 +298,23 @@ sub parse_interface_key {
 # form.  Unsupported directives are warned about once and
 # skipped without stopping generation.
 sub parse_peer_key {
-    my ($peer, $key, $value, $line_no) = @_;
+    my ( $peer, $key, $value, $line_no ) = @_;
 
     if ( $key eq 'publickey' ) {
-        fail($line_no, 'duplicate PublicKey')
+        fail( $line_no, 'duplicate PublicKey' )
           if defined $peer->{public_key};
-        $peer->{public_key} =
-          validate_key($value, $line_no, 'PublicKey');
+        $peer->{public_key} = validate_key( $value, $line_no, 'PublicKey' );
     }
     elsif ( $key eq 'presharedkey' ) {
-        fail($line_no, 'duplicate PresharedKey')
+        fail( $line_no, 'duplicate PresharedKey' )
           if defined $peer->{preshared_key};
         $peer->{preshared_key} =
-          validate_key($value, $line_no, 'PresharedKey');
+          validate_key( $value, $line_no, 'PresharedKey' );
     }
     elsif ( $key eq 'endpoint' ) {
-        fail($line_no, 'duplicate Endpoint')
+        fail( $line_no, 'duplicate Endpoint' )
           if defined $peer->{endpoint_host};
-        my ($host, $port, $family) =
-          parse_endpoint($value, $line_no);
+        my ( $host, $port, $family ) = parse_endpoint( $value, $line_no );
         $peer->{endpoint_host}   = $host;
         $peer->{endpoint_port}   = $port;
         $peer->{endpoint_family} = $family;
@@ -329,21 +322,19 @@ sub parse_peer_key {
     elsif ( $key eq 'allowedips' ) {
         for my $item ( split /,/, $value, -1 ) {
             $item = trim($item);
-            fail($line_no, 'empty AllowedIPs entry')
+            fail( $line_no, 'empty AllowedIPs entry' )
               if $item eq '';
-            my ($family, $cidr) =
-              parse_cidr($item, $line_no, 'AllowedIPs');
-            push_unique_addr($peer->{allowed}, $family, $cidr);
+            my ( $family, $cidr ) = parse_cidr( $item, $line_no, 'AllowedIPs' );
+            push_unique_addr( $peer->{allowed}, $family, $cidr );
         }
     }
     elsif ( $key eq 'persistentkeepalive' ) {
         $peer->{keepalive} =
-          parse_uint($value, 0, 65535, $line_no,
-            'PersistentKeepalive');
+          parse_uint( $value, 0, 65535, $line_no, 'PersistentKeepalive' );
     }
     else {
-        warn_once("unsupported-peer-$key",
-          "unsupported directive $key in [Peer]; ignored");
+        warn_once( "unsupported-peer-$key",
+            "unsupported directive $key in [Peer]; ignored" );
     }
 }
 
@@ -352,10 +343,10 @@ sub parse_peer_key {
 # recursive parser calls this when the next section starts and
 # once more at end of file.
 sub push_peer {
-    my ($cfg, $peer, $line_no) = @_;
+    my ( $cfg, $peer, $line_no ) = @_;
     return unless defined $peer;
 
-    fail($line_no, 'peer has no PublicKey')
+    fail( $line_no, 'peer has no PublicKey' )
       unless defined $peer->{public_key};
 
     push @{ $cfg->{peers} }, $peer;
@@ -388,58 +379,56 @@ sub parse_config {
         if ( $line =~ /\A\[\s*(Interface|Peer)\s*\]\z/i ) {
             my $name = lc $1;
             if ( $name eq 'interface' ) {
-                fail($line_no, 'duplicate [Interface] section')
+                fail( $line_no, 'duplicate [Interface] section' )
                   if $cfg->{seen_interface};
                 $cfg->{seen_interface} = 1;
-                $section = 'interface';
-                $peer    = undef;
+                $section               = 'interface';
+                $peer                  = undef;
             }
             else {
-                fail($line_no,
-                  '[Peer] section before [Interface]')
+                fail( $line_no, '[Peer] section before [Interface]' )
                   unless $cfg->{seen_interface};
-                push_peer($cfg, $peer, $line_no);
-                $peer = { allowed => [] };
+                push_peer( $cfg, $peer, $line_no );
+                $peer    = { allowed => [] };
                 $section = 'peer';
             }
             next;
         }
 
         if ( $line =~ /\A\[/ ) {
-            fail($line_no, 'unsupported section header');
+            fail( $line_no, 'unsupported section header' );
         }
 
-        my ($key, $value) =
-          $line =~ /\A([A-Za-z][A-Za-z0-9]*)\s*=\s*(.*)\z/;
-        fail($line_no, 'expected key = value')
+        my ( $key, $value ) = $line =~ /\A([A-Za-z][A-Za-z0-9]*)\s*=\s*(.*)\z/;
+        fail( $line_no, 'expected key = value' )
           unless defined $key;
 
         $key   = lc $key;
         $value = trim($value);
-        fail($line_no, "empty value for $key") if $value eq '';
+        fail( $line_no, "empty value for $key" ) if $value eq '';
 
         if ( $section eq 'interface' ) {
-            parse_interface_key($cfg, $key, $value, $line_no);
+            parse_interface_key( $cfg, $key, $value, $line_no );
         }
         elsif ( $section eq 'peer' ) {
-            parse_peer_key($peer, $key, $value, $line_no);
+            parse_peer_key( $peer, $key, $value, $line_no );
         }
         else {
-            fail($line_no, 'directive outside a section');
+            fail( $line_no, 'directive outside a section' );
         }
     }
 
     die_tool('wg2if: missing [Interface] section')
       unless $cfg->{seen_interface};
-    push_peer($cfg, $peer, $line_no);
+    push_peer( $cfg, $peer, $line_no );
     die_tool('wg2if: missing PrivateKey in [Interface]')
       unless defined $cfg->{interface}{private_key};
 
     if ( defined $cfg->{interface}{keepalive}
         && !@{ $cfg->{peers} } )
     {
-        warn_once('keepalive-no-peer',
-          'PersistentKeepalive set in [Interface] but no peers');
+        warn_once( 'keepalive-no-peer',
+            'PersistentKeepalive set in [Interface] but no peers' );
     }
 
     return $cfg;
@@ -449,7 +438,7 @@ sub parse_config {
 # peers so a route generated by two different AllowedIPs lists
 # is emitted only once.
 sub add_route {
-    my ($routes, $seen, $route) = @_;
+    my ( $routes, $seen, $route ) = @_;
     return if $seen->{$route}++;
     push @$routes, $route;
 }
@@ -459,15 +448,15 @@ sub add_route {
 # Only a syntactically valid address is accepted so arbitrary
 # route output cannot become shell input.
 sub valid_gateway {
-    my ($gateway, $family) = @_;
+    my ( $gateway, $family ) = @_;
 
-    my ($addr, $scope) =
+    my ( $addr, $scope ) =
       $gateway =~ /\A([0-9A-Fa-f:.]+)(?:%([A-Za-z0-9._-]+))?\z/;
     return 0 unless defined $addr;
     return 0 if $family eq 'inet' && defined $scope;
 
     my $af = $family eq 'inet6' ? AF_INET6 : AF_INET;
-    return 0 unless defined inet_pton($af, $addr);
+    return 0 unless defined inet_pton( $af, $addr );
 
     return 1;
 }
@@ -484,7 +473,7 @@ sub run_route {
 
     if ( !$pid ) {
         open STDERR, '>', '/dev/null';
-        exec { '/sbin/route' } '/sbin/route', @args;
+        exec {'/sbin/route'} '/sbin/route', @args;
         exit 127;
     }
 
@@ -506,9 +495,12 @@ sub get_default_gateway {
     return $gateway_cache{$family}
       if exists $gateway_cache{$family};
 
-    my @candidate_args = $family eq 'inet6'
-      ? ( [ '-n', 'get', '-inet6', 'default' ],
-          [ '-n', 'get', 'default', '-inet6' ] )
+    my @candidate_args =
+      $family eq 'inet6'
+      ? (
+        [ '-n', 'get', '-inet6',  'default' ],
+        [ '-n', 'get', 'default', '-inet6' ]
+      )
       : ( [ '-n', 'get', 'default' ] );
 
     for my $args (@candidate_args) {
@@ -516,7 +508,7 @@ sub get_default_gateway {
         for my $line ( split /\n/, $output ) {
             next unless $line =~ /^\s*gateway:\s*(\S+)/;
             my $gateway = trim($1);
-            next unless valid_gateway($gateway, $family);
+            next unless valid_gateway( $gateway, $family );
             $gateway_cache{$family} = $gateway;
             return $gateway;
         }
@@ -558,7 +550,8 @@ sub render_config {
             $line .= " wgaip $item->{cidr}";
         }
 
-        my $keepalive = defined $peer->{keepalive}
+        my $keepalive =
+          defined $peer->{keepalive}
           ? $peer->{keepalive}
           : $if->{keepalive};
         $line .= " wgpka $keepalive" if defined $keepalive;
@@ -574,30 +567,27 @@ sub render_config {
     for my $peer ( @{ $cfg->{peers} } ) {
         next unless defined $peer->{endpoint_host};
 
-        my $family = $peer->{endpoint_family};
-        my $lookup = $family eq 'inet6' ? 'inet6' : 'inet';
+        my $family  = $peer->{endpoint_family};
+        my $lookup  = $family eq 'inet6' ? 'inet6' : 'inet';
         my $gateway = get_default_gateway($lookup);
-        my $label = $lookup eq 'inet6' ? 'IPv6' : 'IPv4';
+        my $label   = $lookup eq 'inet6' ? 'IPv6' : 'IPv4';
         if ( !$gateway ) {
-            warn_once("gateway-$lookup",
-              "no $label default route found; " .
-              'endpoint routes cannot be generated');
+            warn_once( "gateway-$lookup",
+                    "no $label default route found; "
+                  . 'endpoint routes cannot be generated' );
             next;
         }
 
         my $flag = $family eq 'inet6' ? '-inet6 ' : '';
         my $host = $peer->{endpoint_host};
-        add_route(\@routes, \%seen,
-          "!route add $flag$host $gateway");
+        add_route( \@routes, \%seen, "!route add $flag$host $gateway" );
     }
 
     for my $peer ( @{ $cfg->{peers} } ) {
         for my $item ( @{ $peer->{allowed} } ) {
-            my $flag =
-              $item->{family} eq 'inet6' ? '-inet6 ' : '';
+            my $flag = $item->{family} eq 'inet6' ? '-inet6 ' : '';
             my $cidr = $item->{cidr};
-            add_route(\@routes, \%seen,
-              "!route add $flag$cidr -iface \$if");
+            add_route( \@routes, \%seen, "!route add $flag$cidr -iface \$if" );
         }
     }
 
