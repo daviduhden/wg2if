@@ -16,8 +16,8 @@ does not implement.
 - `README.md` - user-facing usage, supported input, and operational notes.
 - `LICENSE` - ISC license, copyright David Uhden Collado. Preserve it.
 - `.agents/skills/` - task-specific agent procedures.
-- `scripts/check-agent-maintenance.pl` - structural maintenance-policy
-  validator, using Perl core modules and Git.
+- `scripts/validate-agent-knowledge.py` - structural maintenance-policy
+  validator, using Python 3.11+ and Git.
 - `.github/workflows/agent-maintenance.yml` - pull-request enforcement.
 
 There is no Makefile, build system, test suite, or lint configuration.
@@ -68,7 +68,7 @@ For every task that changes the repository:
    instructions it creates or updates.
 5. Remove obsolete or conflicting guidance, add reusable knowledge learned
    during the task, and verify local links and references.
-6. Run `perl scripts/check-agent-maintenance.pl` after the relevant
+6. Run `python3 scripts/validate-agent-knowledge.py --scope worktree` after the relevant
    instruction updates. The check validates changed-file coverage,
    instruction structure, and resolvable local Markdown links. Also run
    project-specific validation required by the affected skill.
@@ -81,6 +81,27 @@ update, invalid references, or failed maintenance check blocks completion.
 When changing this policy, the validator, or their workflow, review the
 whole maintenance system once at the end and rerun validation only to check
 corrections; this avoids an endless update loop.
+
+### Shared Agent Knowledge Validation Contract
+
+Use `python3 scripts/validate-agent-knowledge.py --scope worktree` for local
+changes and `python3 -m unittest discover -s tests/agent_knowledge_validator -v`
+for its contract tests. The validator requires Python 3.11+ and Git, uses only
+the Python standard library, and publishes contract version `1.0.0`. All
+adopting repositories share the same CLI, AK001-AK006 identifiers, output
+schema, and exit codes (`0` pass, `1` policy failure, `2` execution/configuration
+error). For a pull request, pass both revisions with
+`--scope range --base BASE_REF --head HEAD_REF`; compare from their merge base.
+
+Read [Agent Knowledge Validation Contract](docs/agent-knowledge-validation.md)
+for the complete rules, JSON schema, optional repository configuration,
+warning semantics, and extension process. AK004 and AK006 can require human
+review; their warnings do not prove or disprove semantic correctness. Keep the
+canonical script and black-box unittest suite byte-identical across adopting
+repositories. Repository-specific requirements belong in the documented TOML
+configuration or a stable `AKX...` extension, never in a private fork of the
+shared rules. The GitHub PR workflow runs the same tests and range command;
+it does not edit files or require secrets.
 
 ### Mandatory Definition of Done
 
@@ -222,7 +243,7 @@ unrelated changes instead of hiding them.
 4. Run project-specific validation, including `perl -c wg2if.pl` for Perl
    changes and fixture comparison when behavior changes.
 5. Complete the Continuous Agent & Skills Maintenance procedure and run
-   `perl scripts/check-agent-maintenance.pl`.
+   `python3 scripts/validate-agent-knowledge.py --scope worktree`.
 6. Run `git diff --check`, review the full diff, and report verification,
    synchronization status, and any system-level step left to the operator.
 

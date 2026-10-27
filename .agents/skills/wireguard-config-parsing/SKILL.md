@@ -215,7 +215,7 @@ Update it when parsing behavior, validation procedures, tools, configuration
 assumptions, fixtures, or validation commands change. Add reusable findings
 and correct inaccurate guidance; keep examples and procedures current. Do
 not add one-off execution details. Review related agent instructions and
-skills, then run `perl scripts/check-agent-maintenance.pl`.
+skills, then run `python3 scripts/validate-agent-knowledge.py --scope worktree`.
 
 ## References
 

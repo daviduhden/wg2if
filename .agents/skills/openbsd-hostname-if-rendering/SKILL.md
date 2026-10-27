@@ -197,7 +197,7 @@ Update it when rendering procedures, tools, configuration assumptions,
 validation commands, or the output contract change. Add reusable findings
 and correct inaccurate guidance; keep examples and validation steps current.
 Do not add one-off execution details. Review related agent instructions
-and skills, then run `perl scripts/check-agent-maintenance.pl`.
+and skills, then run `python3 scripts/validate-agent-knowledge.py --scope worktree`.
 
 ## References
 

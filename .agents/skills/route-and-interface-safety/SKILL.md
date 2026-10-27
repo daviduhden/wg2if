@@ -175,7 +175,7 @@ Update it when route behavior, safety procedures, tools, configuration
 assumptions, or validation commands change. Add reusable findings and
 correct inaccurate guidance; keep examples and procedures current. Do not
 add one-off execution details. Review related agent instructions and skills,
-then run `perl scripts/check-agent-maintenance.pl`.
+then run `python3 scripts/validate-agent-knowledge.py --scope worktree`.
 
 ## References
 

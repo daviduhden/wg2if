@@ -1,0 +1,5 @@
+[validator]
+contract_version = "1.0.0"
+
+[validator.required_headings]
+"AGENTS.md" = ["Mandatory Definition of Done"]

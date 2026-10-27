@@ -105,7 +105,7 @@ review the applicable instruction files and report the synchronization
 result. Run the structural validator from the repository root:
 
 ```sh
-perl scripts/check-agent-maintenance.pl
+python3 scripts/validate-agent-knowledge.py --scope worktree
 ```
 
 The validator checks Git changes, instruction structure, local Markdown
