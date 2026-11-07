@@ -18,10 +18,11 @@ does not implement.
 - `.agents/skills/` - task-specific agent procedures.
 - `scripts/validate-agent-knowledge.pl` - structural maintenance-policy
   validator, using Perl 5.14+ (JSON::PP core) and Git.
-- `.github/workflows/agent-maintenance.yml` - pull-request enforcement.
+- `.github/workflows/agent-knowledge-validation.yml` - manual-only
+  enforcement.
 
 There is no Makefile, build system, test suite, or lint configuration.
-GitHub Actions runs the agent-maintenance validator for pull requests.
+GitHub Actions runs the agent-maintenance validator on manual dispatch.
 
 ## Continuous Agent & Skills Maintenance
 
@@ -90,7 +91,7 @@ for its contract tests. The validator requires Perl 5.14+ (JSON::PP core) and Gi
 core Perl modules, and publishes contract version `1.0.0`. All
 adopting repositories share the same CLI, AK001-AK006 identifiers, output
 schema, and exit codes (`0` pass, `1` policy failure, `2` execution/configuration
-error). For a pull request, pass both revisions with
+error). To compare committed revisions locally, pass both with
 `--scope range --base BASE_REF --head HEAD_REF`; compare from their merge base.
 
 Read [Agent Knowledge Validation Contract](docs/agent-knowledge-validation.md)
@@ -100,8 +101,9 @@ review; their warnings do not prove or disprove semantic correctness. Keep the
 canonical script and black-box Perl suite byte-identical across adopting
 repositories. Repository-specific requirements belong in the documented TOML
 configuration or a stable `AKX...` extension, never in a private fork of the
-shared rules. The GitHub PR workflow runs the same tests and range command;
-it does not edit files or require secrets.
+shared rules. All workflows are manual-only: start them from the Actions
+tab or with `gh workflow run`; the agent workflow runs the same tests and
+worktree validation and does not edit files or require secrets.
 
 ### Mandatory Definition of Done
 

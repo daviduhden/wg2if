@@ -109,8 +109,8 @@ perl scripts/validate-agent-knowledge.pl --scope worktree
 ```
 
 The validator checks Git changes, instruction structure, local Markdown
-links, and a minimum amount of added instruction content. GitHub Actions runs
-it for pull requests. These automated checks cannot determine semantic
+links, and a minimum amount of added instruction content. GitHub Actions
+runs it only on manual dispatch. These automated checks cannot determine semantic
 relevance; reviewers must confirm that the update accurately captures
 reusable knowledge. For local branch work, compare against another commit
 with `--base <commit>` when the default `HEAD` comparison is not the intended
